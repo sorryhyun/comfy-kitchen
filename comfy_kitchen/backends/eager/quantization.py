@@ -872,7 +872,8 @@ def quantize_int8_rowwise(
     """
     abs_max = x.abs().amax(dim=-1, keepdim=True)
     scale = (abs_max.float() / 127.0).clamp(min=1e-30)
-    q = _round_int8(x / _int8_scale_for_math(scale, x), stochastic_rounding=stochastic_rounding)
+    # in fp32 whatever the input dtype, as the CUDA kernels: the scale is stored fp32
+    q = _round_int8(x.float() / scale, stochastic_rounding=stochastic_rounding)
     return q, scale
 
 

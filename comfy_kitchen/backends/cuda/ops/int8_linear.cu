@@ -46,16 +46,16 @@ template<> __device__ __forceinline__ float from_float<float>(float val) { retur
 template<> __device__ __forceinline__ half from_float<half>(float val) { return __float2half_rn(val); }
 template<> __device__ __forceinline__ nv_bfloat16 from_float<nv_bfloat16>(float val) { return __float2bfloat16_rn(val); }
 
+// In fp32 whatever the input dtype: the dequant side multiplies by the fp32 scale, and
+// rounding the quotient to bf16 leaves a 0.5 step above 64.
 template<typename T>
 __device__ __forceinline__ float quant_div_to_float(T val, float scale) {
-    const float scale_t = to_float(from_float<T>(scale));
-    return to_float(from_float<T>(to_float(val) / scale_t));
+    return to_float(val) / scale;
 }
 
 template<typename T>
 __device__ __forceinline__ float quant_div_float_to_float(float val, float scale) {
-    const float scale_t = to_float(from_float<T>(scale));
-    return to_float(from_float<T>(to_float(from_float<T>(val)) / scale_t));
+    return val / scale;
 }
 
 template<typename T>

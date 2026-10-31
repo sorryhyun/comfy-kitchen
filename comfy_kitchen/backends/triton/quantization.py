@@ -789,7 +789,7 @@ def _quantize_rowwise_kernel(
     mask = offsets < n_elements
 
     # Load data
-    x = tl.load(x_row_ptr + offsets, mask=mask, other=0.0)
+    x = tl.load(x_row_ptr + offsets, mask=mask, other=0.0).to(tl.float32)
 
     # Absolute value
     abs_x = tl.abs(x)
@@ -800,16 +800,11 @@ def _quantize_rowwise_kernel(
     # 2. Compute Scale
     scale = tl.maximum(max_val / 127.0, 1e-30)
 
-    # 3. Quantize
-    if input_dtype_code == 1:
-        q_f = (x / scale.to(tl.float16)).to(tl.float16)
-    elif input_dtype_code == 2:
-        q_f = (x / scale.to(tl.bfloat16)).to(tl.bfloat16)
-    else:
-        q_f = x / scale
+    # 3. Quantize, in fp32 whatever the input dtype: the scale is stored fp32
+    q_f = x / scale
 
     # Round and Clamp
-    q_i = tl.clamp(libdevice.rint(q_f.to(tl.float32)), -128.0, 127.0).to(tl.int32)
+    q_i = tl.clamp(libdevice.rint(q_f), -128.0, 127.0).to(tl.int32)
 
     # 4. Store
     tl.store(y_row_ptr + offsets, q_i.to(tl.int8), mask=mask)
